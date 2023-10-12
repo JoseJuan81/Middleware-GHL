@@ -1,10 +1,12 @@
-import requests
-from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
+from fastapi import FastAPI, Depends, Response, Request
+
 from Models.ghl_new_contact import GHLNewContactModel
+from Class.GHL import GHL
+
+from Middlewares.verify_ghl_token import verify_ghl_token
 
 GHL_AUTH_TOKEN = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6IkNLR1ZRODFyczRSa3F0UGJRdmdPIiwiY29tcGFueV9pZCI6ImttWDhSeEZWYWlSeFI1aGVxUUp5IiwidmVyc2lvbiI6MSwiaWF0IjoxNjk2MzgxNjgyNDcyLCJzdWIiOiJ1c2VyX2lkIn0.UO4IiEUdCncw8SAae3Jx7oPXXsdp0VIUhWh8UN4ILTc"
-GHL_CONTACT_URL = "https://rest.gohighlevel.com/v1/contacts/"
+
 
 app = FastAPI()
 
@@ -12,34 +14,18 @@ app = FastAPI()
 def index():
     return "Hola Mundo"
 
-@app.post("/ghl/v1/new-contact")
-async def ghl_create_new_contact(new_contact: GHLNewContactModel):
+# Considerar middleware para guardar data de contacto en BD
+# Depends(save_contact_data)
+@app.post("/ghl/v1/new-contact", dependencies=[Depends(verify_ghl_token)])
+async def ghl_create_new_contact(request: Request, new_contact: GHLNewContactModel) -> Response:
     """Funcion para crear nuevo contacto en GHL"""
 
-    url = GHL_CONTACT_URL 
-    headers = {
-        "Authorization": GHL_AUTH_TOKEN,
-		"Content-Type": "application/json"
-    }
+    return GHL.Contact.create(request, new_contact)
+   
 
-    try:
-        json_data = jsonable_encoder(new_contact)
-        response = requests.post(url, headers=headers, json=json_data)
-        return { "data": response.json()}
-    except ValueError:
-        print("/ghl/v1/new-contact: error")
-        print(ValueError)
-        print("/ghl/v1/new-contact: fin error")
-        return ValueError
+@app.get("/ghl/v1/custom-fields", dependencies=[Depends(verify_ghl_token)])
+async def ghl_get_custom_fields():
+    """Funcion para obtener los custom Fields en GHL"""
 
+    return GHL.contact.custom_fields_handler()
 
-@app.post("/ghl/v1/new-contacts")
-async def ghl_create_new_contacts(new_contacts: list[GHLNewContactModel]):
-    """Funcion para crear varios contactos en GHL"""
-    
-    responses = []
-    for new_contact in new_contacts:
-        res = await ghl_create_new_contact(new_contact)
-        responses.append(res)
-
-    return responses
