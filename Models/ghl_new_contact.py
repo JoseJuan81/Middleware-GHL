@@ -15,4 +15,4 @@ class GHLNewContactModel(BaseModel):
     phone: str
     source: str 
     state: Union[str, None] = "active"
-    tags: Union[list, None] = []
+    tags: Union[list[str], None] = []
