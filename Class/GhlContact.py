@@ -12,19 +12,26 @@ class GhlContact:
         self.tags: list = []
         self.url_contact = URL_CONTACT
         self.custom_fields = CustomFields
+        self.headers: dict = None
+
+    def set_headers(self, headers: dict) -> None:
+        """Funcion que establece el valor de Headers en la variable de la clase"""
+
+        self.headers = dict([
+            ("Authorization", headers["authorization"]),
+            ("Content-Type", headers["content-type"])
+        ])
 
     def create(self, request: Request, new_contact: GHLNewContactModel) -> JSONResponse:
         """Funcion para crear una contacto en GHL"""
+        
+        self.set_headers(request.headers)
 
-        # Aqui llamar al metodo custom_field
-        _custom_fields = self.custom_fields.check(request, new_contact.custom_field)
+        _custom_fields = self.custom_fields.check(request, new_contact.customField)
         new_contact_updated = { **dict(new_contact), **_custom_fields }
-        headers = request.headers
-        url = self.url_contact 
 
         try:
-            json_data = jsonable_encoder(new_contact_updated)
-            response = requests.post(url, headers=headers, json=json_data)
+            response = requests.post(self.url_contact, headers=self.headers, json=new_contact_updated)
             status_code = response.status_code
 
             if status_code == 200:
